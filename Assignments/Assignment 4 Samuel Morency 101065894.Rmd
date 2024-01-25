@@ -1,0 +1,276 @@
+---
+title: "ECON 3880: Assignment 4"
+author: "Samuel Morency - 101065894"
+date: '`r Sys.Date()`'
+output: 
+  html_notebook: 
+    toc: no
+    df_print: paged
+    number_sections: false
+    theme: darkly
+    highlight: breezedark
+---
+
+> Download and read the data set **flights2022.rds** from Brightspace and save 
+it in the same folder as your R Notebook file. Then read it into RStudio and 
+call it **df22** for simplicity.
+
+```{r}
+df22 <- readRDS("./flights2022.rds")
+
+factorCols <- c("year","month", "day", "carrier", "origin", "dest")
+df22[factorCols] <- lapply(df22[factorCols], as.factor)
+```
+
+> Notice that this dataset is different from what we have used in the 
+Assignment 3! This data set contains flights data in 2022, which is similar to 
+the New York flights dataset and has been extracted using a package called 
+**anyflights** in R.
+
+# Questions: {.tabset}
+
+## Question 1
+
+> Using df22:
+
+-   <div> > calculate the number and percentage of cancelled flights in each 
+month (note that for cancelled flights the air_time is missing) and show them 
+in a table in the R notebook </div>
+```{r}
+library(tidyverse)
+months <- df22 %>% select(month, air_time) %>% 
+  group_by(month)
+
+summary <- months %>% summarize(flights = n())
+
+months_na <- months %>% filter(is.na(air_time))
+
+summary_na <- months_na %>% summarize(canceled = n())
+
+summary <- summary %>% left_join(summary_na, by = "month") %>% 
+  mutate(percent_canceled = (canceled / flights) * 100)
+summary
+```
+
+-   <div> > create a bar chart to show the percentages of canceled flights in 
+different months, fill them based on month </div>
+```{r}
+plot1 <- summary %>% ggplot(aes(month, fill = month, weight = percent_canceled)) +
+  geom_bar() +
+  scale_fill_hue(direction = 1)
+plot1
+```
+
+-   <div> > remove the legend from the plot </div>
+```{r}
+plot1 <- plot1 + theme(legend.position = "none")
+plot1
+```
+
+-   <div> > add "Proportion of Cancelled Flights Each Month" and "proportion 
+cancelled" to the plot in appropriate places. </div>
+```{r}
+plot1 <- plot1 +
+  labs(title = "Proportion of Cancelled Flights Each Month", 
+       y = "proportion cancelled")
+plot1
+```
+
+## Question 2
+
+> Use the df22 dataset and
+
+-   <div> > keep only the flights from JFK to LAX and IAD </div>
+
+```{r}
+JFK_to_LAX_IAD <- df22 %>% filter(origin == "JFK" & dest %in% c("LAX", "IAD"))
+JFK_to_LAX_IAD
+```
+
+-   <div> > select year, origin, dest, and all the columns with a name that 
+starts with **arr** </div>
+
+```{r}
+JFK_to_LAX_IAD <- JFK_to_LAX_IAD %>% select(year, origin, dest, starts_with("arr"))
+JFK_to_LAX_IAD
+```
+
+-   <div> > save the results as **my_filtered_data.csv** (no need to send the 
+saved data file, I only want to see the code) </div>
+
+```{r}
+write_csv(JFK_to_LAX_IAD, "my_filtered_data.csv")
+```
+
+-   <div> > what is the dimension of the saved file (write the code to get that 
+information). </div>
+
+This is how I would do it, because I know the saved file would have the same 
+dimensions as the dataframe I passed into write_csv():
+```{r}
+dim(JFK_to_LAX_IAD)
+```
+
+But since this question explicitly asks to write code to get the dimension of 
+the saved file, this is an alternative that reads the csv file and checks the 
+dimensions of the result:
+
+```{r}
+read_csv("my_filtered_data.csv") %>% dim()
+```
+The saved file has 11243 rows, and 5 columns.
+
+## Question 3
+
+> How many different airports are listed as destination in df22? Write a code 
+to show their names.
+
+```{r}
+dest_airports <- unique(df22$dest)
+dest_airports
+
+# alternative:
+# paste(names(dest_airports),collapse = ", ")
+```
+```{r}
+length(dest_airports)
+```
+
+There are 118 unique airports listed as destinations in df22.
+
+## Question 4
+
+> Write a code that shows the **number** of flights from different airports to 
+MYR, OAK, SNA, and PDX airports in df22.
+
+```{r}
+to_MYR_OAK_SNA_PDX <- df22 %>% 
+  filter(dest %in% c("MYR", "OAK", "SNA", "PDX")) %>% 
+  group_by(origin, dest) %>% 
+  summarise(number_of_flights = n()) %>% 
+  pivot_wider(names_from = dest, values_from = number_of_flights, names_prefix = "flights_to_")
+to_MYR_OAK_SNA_PDX
+```
+
+
+## Question 5
+
+> How many missing observations do we have in each column of the df22 (note 
+that we need the number of missing in every single column!)? Write a code to 
+count the missing observations and show them in the notebook.
+
+```{r}
+df22_missing_obs <- df22 %>% 
+  map_df(~sum(is.na(.))) %>% 
+  pivot_longer(cols = everything(), 
+               names_to = "column", 
+               values_to = "missing_observations") %>% 
+  arrange(desc(missing_observations))
+# I might be able to use a '.' instead of 'everything()' here.
+df22_missing_obs
+```
+
+## Question 6
+
+> Use the df22 data:
+
+-   <div> > drop all the flights to EGE, </div>
+
+```{r}
+df22_Q6 <- df22 %>% filter(dest != "EGE")
+df22_Q6
+```
+
+-   <div> > keep only origin, dest, and distance columns, </div>
+
+```{r}
+df22_Q6 <- df22_Q6 %>% select(origin, dest, distance)
+df22_Q6
+```
+
+-   <div> > exclude all the rows with any missing observation, </div>
+
+```{r}
+df22_Q6 <- df22_Q6 %>% na.omit()
+df22_Q6
+```
+If I do it this way, no rows are excluded. This is because only the dep_time, 
+dep_delay, arr_time, arr_delay, tailnum, and air_time columns contain NA values 
+when a flight was canceled.
+
+Here is an alternative solution that filters all flights that were canceled, 
+assuming that is the meaning of "missing observations":
+
+```{r}
+df22_Q6 <- df22 %>% 
+  filter(dest != "EGE") %>% 
+  na.omit() %>% 
+  select(origin, dest, distance)
+df22_Q6
+```
+
+
+-   <div> > remove all the duplicated rows (i.e., rows with exactly the same 
+values), </div>
+
+```{r}
+df22_Q6 <- df22_Q6 %>% distinct()
+df22_Q6
+```
+
+-   <div> > create a wide dataset that shows the destinations in rows and the 
+origins in the columns, </div>
+
+```{r}
+df22_Q6_wide <- df22_Q6 %>% pivot_wider(names_from = origin, values_from = distance, names_prefix = "origin_")
+df22_Q6_wide
+```
+
+-   <div> > show the top 10 rows of the wide dataset. </div>
+
+Here are the first 10 rows:
+```{r}
+df22_Q6_wide %>% head(10)
+```
+"Top rows" could also be interpreted to mean the highest in value, so here is 
+an alternative solution showing the top 10 highest rows in terms of total 
+flights:
+
+```{r}
+df22_Q6_wide %>% 
+  mutate(total = rowSums(select(., starts_with("origin_")), na.rm = TRUE)) %>% 
+  arrange(desc(total)) %>% 
+  head(10)
+```
+
+## Question 7
+
+> Read a data set called **Money** from the package **Ecdat**, which shows 
+Money, GDP and Interest Rate in Canada and assign it to "can_money":
+
+```{r}
+can_money <- Ecdat::Money
+```
+
+-   <div> > use as.data.frame() function to convert that into a data 
+frame </div>
+
+```{r}
+can_money <- can_money %>% as.data.frame()
+can_money
+```
+
+-   <div> > create a new variable called my as m \* y and add that to the 
+dataset </div>
+
+```{r}
+can_money <- can_money %>% 
+  mutate(my = m * y)
+can_money
+```
+
+-   <div> > show the first 2 rows of the data. </div>
+
+```{r}
+can_money %>% head(2)
+```
