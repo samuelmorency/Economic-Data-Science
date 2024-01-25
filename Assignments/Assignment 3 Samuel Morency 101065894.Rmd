@@ -1,0 +1,166 @@
+---
+title: "ECON 3880: Assignment 3"
+author: "Samuel Morency - 101065894"
+
+date: '`r Sys.Date()`'
+output: 
+  html_notebook: 
+    toc: yes
+    toc_float: yes
+    df_print: paged
+    number_sections: false
+    theme: darkly
+    highlight: breezedark
+---
+
+>Download and read the data set **SYRflights2021.rds** from Brightspace and 
+save it in the same folder as your R Notebook file. Then read it into RStudio 
+and call it **syr** for simplicity.
+
+```{r}
+syr <- readRDS("./SYRflights2021.rds")
+```
+
+
+>This data set contains flights data from the Syracuse Airport in 2021, which is 
+similar to the New York flights dataset that we have seen in class and has the 
+same variables. Please use an R Notebook to answer the following questions and 
+submit the HTML file.
+
+# Question 1:
+
+>Load tidyverse and write a code to print the first 3 rows of the dataset.
+
+```{r}
+library(tidyverse)
+syr %>% head(3)
+```
+>What are the names of columns in this dataset?
+
+```{r}
+syr %>% colnames()
+
+# alternative:
+# paste(names(syr),collapse = ", ")
+```
+The names of the columnns in this dataset are: year, month, day, dep_time, 
+sched_dep_time, dep_delay, arr_time, sched_arr_time, arr_delay, carrier, flight,
+tailnum, origin, dest, air_time, distance, hour, minute, and time_hour.
+
+# Question 2:
+
+>Use one of the functions we have learned so far to get the structure of the syr 
+dataset and understand the variables included the dataset. What types of data 
+we have in this dataset?
+
+```{r}
+syr %>% str()
+```
+
+This dataset consists of integers, characters (strings), and numeric data.
+
+# Question 3:
+
+>Find all flights with more than 5 hours delayed arrival that flew to New York 
+City (there are 3 airports with the codes JFK, LGA, and EWR in this city).
+
+```{r}
+syr %>% filter(arr_delay > 5*60 & dest %in% c("JFK","LGA","EWR"))
+```
+>How many flights match these two conditions?
+
+9 flights match these two conditions.
+
+# Question 4:
+
+>In the first three months of 2021, how many flights to CLT have been operated 
+by American Airlines (AA) or Republic Airways (YX) with the more than 110 and 
+less than 120 minutes air time? Show these cases in a table.
+
+```{r}
+syr %>% filter(year == 2021 & month <= 3 & dest == "CLT" & carrier %in% c("AA","YX") & air_time > 110 & air_time < 120)
+```
+
+23 flights.
+
+# Question 5:
+
+>Use 2 different approaches that we have learned in class, to create 2 new 
+variables called distance_km1 and distance_km2 and convert the distance from 
+miles to KM (note that 1 mile = 1.61 KM). Make sure that both variables are 
+added to the syr dataset.
+
+```{r}
+syr <- syr %>% mutate(distance_km1 = 1.61 * distance)
+
+syr$distance_km2 <- (1.61 * syr$distance)
+
+syr
+```
+
+>Next, create a new dataset called df_new by selecting the following columns: 
+MONTH, carrier, distance_km1, distance_km2, and all the columns that their name 
+ends with “time”.
+
+```{r}
+df_new <- syr %>% select(month, carrier, distance_km1, distance_km2, ends_with("time"))
+df_new
+```
+
+>Finally show the last 4 rows of this dataset.
+
+```{r}
+df_new %>% tail(4)
+```
+
+# Question 6:
+
+>Using the dataset df_new, create an interactive count plot to show the number 
+of observations for each carrier at different months and color them “gold”. 
+Hint, make sure that the values on axes makes sense and appear correctly. In 
+addition, add “Number of observations in different months for different 
+carriers”, “Month of the year” and “Airline Code” as the main title of the plot 
+and axes titles, respectively.
+
+```{r}
+library(plotly)
+
+factorCols <- c("month","carrier")
+df_new[factorCols] <- lapply(df_new[factorCols], as.factor)
+
+plot1 <- df_new %>% ggplot(aes(month, carrier)) +
+  geom_count(color = "gold") +
+  labs(title = "Number of observations in different months for different carriers",
+       x = "Month of the year",
+       y = "Airline Code") 
+
+plot1 %>% ggplotly()
+```
+
+>Overall, which carrier operated year-round and had the highest flights in all 
+months?
+
+```{r}
+df_new2 <- df_new %>% 
+  group_by(month, carrier) %>% 
+  dplyr::summarize(count = n()) %>% 
+  pivot_wider(names_from = month, 
+              values_from = count, 
+              names_prefix = "month_")
+
+df_new2 <- df_new2 %>% 
+  mutate(annual = rowSums(select(df_new2, starts_with("month_")), na.rm = TRUE)) %>% 
+  arrange(desc(annual))
+
+df_new2 %>% na.omit()
+```
+Carrier 9E operated year-round and had the highest flights in all months.
+
+>Which carrier operated only in November and December 2021 and what was 
+the total number of flights by this carrier?
+
+```{r}
+df_new2 %>% filter(if_all(month_1:month_10, is.na))
+```
+Carrier WN operated only in November and December 2021 and the total number of 
+flights by this carrier was 144.
