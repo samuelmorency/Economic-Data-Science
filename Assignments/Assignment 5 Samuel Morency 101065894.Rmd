@@ -1,0 +1,193 @@
+---
+title: "ECON 3880: Assignment 5"
+author: "Samuel Morency - 101065894"
+date: '`r Sys.Date()`'
+output: 
+  html_notebook: 
+    toc: no
+    df_print: paged
+    number_sections: false
+    theme: darkly
+    highlight: breezedark
+---
+
+# Questions: {.tabset}
+
+## Question 1
+
+> Using the **statcanR** package, search for the data table that contains 
+“unemployment”, “census”, and “2022” in its title, download that table and 
+call it **LF**.
+
+```{r, warning=FALSE, message=FALSE}
+invisible(lapply(c("statcanR", "tidyverse", "readxl", "regclass"), 
+       require, 
+       character.only = TRUE))
+statcan_search(c("unemployment", "census", "2022"), "eng")
+```
+
+```{r, warning=FALSE, message=FALSE}
+LF <- statcan_download_data("14-10-0106-01", "eng")
+LF
+```
+<br>
+
+-   <div> > Clean the names of the columns</div>
+
+```{r}
+LF <- LF %>% janitor::clean_names()
+LF
+```
+<br>
+
+-   <div> > keep only ref_date, geo, labour_force_characteristics, 
+population_centre_and_rural_areas, sex, age_group, and value</div>
+
+```{r}
+LF <- LF %>% select("ref_date", 
+                    "geo", 
+                    "labour_force_characteristics", 
+                    "population_centre_and_rural_areas", 
+                    "sex", 
+                    "age_group", 
+                    "value")
+LF
+```
+<br>
+
+-   <div> > only keep 2020 from the ref_date; “Total, all population centres 
+and rural areas” from the population_centre_and_rural_areas; unemployment rate 
+from labour_force_characteristics; and age groups 15-24 years and 25-44 years 
+from the age_group.</div>
+
+```{r}
+LF$ref_date <- LF$ref_date %>% format("%Y")
+LF <- LF %>% filter(ref_date == 2020, 
+              population_centre_and_rural_areas == "Total, all population centres and rural areas",
+              labour_force_characteristics == "Unemployment rate",
+              age_group %in% c("15 to 24 years", "25 to 44 years"))
+LF
+```
+<br>
+
+-   <div> > What are the unemployment rates of males and females aged 25-44 
+years old in Canada and provinces? To answer, create a table that shows the geo 
+in rows, sex in the columns, and the unemployment rates in different cells</div>
+
+```{r, warning=FALSE, message=FALSE}
+uerates <- LF %>% 
+  filter(sex != "Both sexes", age_group == "25 to 44 years") %>% 
+  group_by(geo, sex) %>% 
+  summarise(unemployment_rate = mean(value)) %>% 
+  pivot_wider(names_from = sex, values_from = unemployment_rate)
+uerates
+```
+<br>
+
+-   <div> > Create a point plot to visualize the above table.</div>
+
+```{r}
+plot1 <- uerates %>% 
+  ggplot(aes(Females, geo)) +
+  geom_segment(aes(xend = Males,
+                   yend = geo, 
+                   linetype = 5),
+               linewidth = 1) +
+  scale_linetype_identity() +
+  geom_point(aes(color = "Females"),
+               size = 4,
+             shape = 15) +
+  geom_point(aes(Males, 
+                 color = "Males"),
+             size = 4,
+             shape = 15)
+
+plot1 <- plot1 + 
+  geom_text(aes(label = abs(uerates$Females - uerates$Males) %>% round(1)),
+            position = position_nudge(-(uerates$Females - uerates$Males) / 2, 0.4),
+            size = 3) +
+  labs(title = 'Gender gaps in Unemployment Rates', 
+       subtitle = "by Geography, 25-44 year olds, Canada",
+       x = 'Unemployment Rate (%)', 
+       y = 'Geography', 
+       colour = 'Sex')
+
+plot1
+```
+<br>
+
+-   <div> > Where do we observe the biggest gap between the females and males 
+unemployment rate?</div>
+
+```{r}
+gap <- uerates %>% mutate(gap = abs(Females - Males))
+gap[which.max(gap$gap),]
+```
+We observe the biggest gap between the female and male unemployment rates in 
+`r gap[[which.max(gap$gap), "geo"]]`, at `r gap[[which.max(gap$gap), "gap"]]`%.
+
+## Question 2
+
+> Write code to import the excel data file named **assignment5_data** from the 
+Brightspace and call it df. 
+
+```{r}
+df <- read_excel("Assignment5_data.xlsx", skip = 1)
+df
+```
+
+> Estimate the following linear model $y = \beta_0 + \beta_1 * x1+\beta_2 * x2 
++ \beta_3 * x3$ and show the estimated coefficients.
+
+```{r}
+model1 <- lm(y ~ x1 + x2 + x3, data = df)
+coef(model1)
+```
+
+> Which one of the independent variables are statistically insignificant?
+
+```{r}
+summary(model1)
+```
+A variable is statistically significant if its p-value is less than 0.05. 
+Therefore, the independent variables x1 and x3 are statistically insignificant, 
+while the intercept and x2 are statistically significant.
+
+## Question 3
+
+> Use the df data:
+
+-   <div> > create a new variable called **y_group**, based on the values for y 
+and define y_group = 1 when y > average(y) and 0 otherwise</div>
+
+```{r}
+df_q3 <- df %>% mutate(y_group = if_else(y > mean(y), 1, 0))
+```
+
+-   <div> > estimate a logistic regression using the y_group as the dependent 
+variable and x1, x2, and x3 as the predictors</div>
+
+```{r}
+df_q3$y_group <- as.factor(df_q3$y_group)
+
+model2 <- glm(y_group ~ x1 +x2 +x3, data = df_q3, family = binomial())
+summary(model2)
+```
+
+-   <div> > calculate and show the confusion matrix and the accuracy rate for 
+this model.</div>
+
+```{r}
+cm <- confusion_matrix(model2)
+cm
+```
+
+```{r}
+tn <- cm[1,1]
+tp <- cm[2,2]
+total <- cm[3,3]
+
+accuracy <- (tn + tp) / total
+accuracy
+```
+The accuracy rate for this model is ~60.7%.
