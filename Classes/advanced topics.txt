@@ -1,0 +1,21 @@
+Maps:
+
+https://bookdown.org/eneminef/DRR_Bookdown/mapping-vector-data.html
+
+https://rstudio-pubs-static.s3.amazonaws.com/897298_1236edf8a50d42e297141695a8c44360.html
+
+shiny app : 
+https://github.com/manolo20/cpi_dashboard_StatCan
+
+
+git: 
+https://github.com/tidyverse/tidyverse
+
+
+
+
+cancensus package:
+
+   https://cran.r-project.org/web/packages/cancensus/vignettes/cancensus.html
+
+https://censusmapper.ca/api
