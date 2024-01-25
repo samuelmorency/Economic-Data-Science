@@ -1,0 +1,137 @@
+---
+title: "ECON 3880: Assignment 2"
+author: "Samuel Morency - 101065894"
+date: '`r Sys.Date()`'
+output: 
+  html_notebook: 
+    toc: yes
+    toc_float: yes
+    df_print: paged
+    number_sections: false
+    theme: darkly
+    highlight: breezedark
+---
+
+# [Question 1:](https://youtu.be/dQw4w9WgXcQ){target="_blank"}
+
+> Use **sex** and **region** to create a **count plot**. Which region has the 
+highest number of observations?
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+
+df <- read.csv("insurance.csv", header = TRUE)
+
+factorCols <- c("sex","children","smoker","region")
+df[factorCols] <- lapply(df[factorCols], as.factor)
+
+p1 <- ggplot(df) + 
+  aes(region, sex) +
+  geom_count(color = "blue")
+p1
+```
+
+Southeast has the highest number of observations, 170 + 180 = `r 170 + 180`
+
+# [Question 2:](https://youtu.be/dQw4w9WgXcQ){target="_blank"} {.tabset}
+
+> Does the link between bmi and charges vary based on smoker?
+
+## a)
+
+> Create a point plot between the bmi and charges and color them based on 
+smoker.
+
+```{r}
+p2 <- ggplot(df) + 
+  aes(bmi, charges, color = smoker) +
+  geom_point()
+p2
+```
+
+## b)
+
+> Next, add 2 linear trend lines to the plot using geom_smooth based on smoker.
+
+```{r}
+p2 <- p2 + 
+  geom_smooth(method = lm)
+p2
+```
+
+## c)
+
+> Change the axes names to Body Mass Index and Dollar Charged.
+
+```{r}
+p2 <- p2 + 
+  labs(x = "Body Mass Index", y = "Dollar Charged")
+p2
+```
+
+## d)
+
+> Add a title to the graph to read The link between BMI and Charges: Smokers 
+and non-smokers.
+
+```{r}
+p2 <- p2 + 
+  labs(title = "The link between BMI and Charges: Smokers and non-smokers.")
+p2
+```
+
+## e)
+
+> What do you conclude based on this graph?
+
+```{r}
+p2
+```
+
+From this graph I conclude that Dollars Charged has a stronger correlation with
+Body Mass Index (BMI) among smokers than among non-smokers. BMI has little 
+effect on Dollars Charged for non-smokers (indicated by the nearly-
+horizontal trend line) whereas BMI has a significant effect on Dollars Charged 
+for smokers (indicated by the steeply sloped trend line).
+
+# [Question 3:](https://youtu.be/dQw4w9WgXcQ){target="_blank"}
+
+> Create a stacked bar chart for each region and fill the bars based on smoker. 
+Next flip the coordinates (axes) and also change the theme of the graph to 
+minimal. Add the count of the observations to each bar and adjust them to see 
+each number in the correct position (note that we should see 8 numbers in the 
+graph!). Next, instead of letting R choose the colors for the bars, use the 
+function scale_fill_brewer() and a palette called "Dark2" to change the color 
+of the bars.
+
+```{r}
+p3 <- ggplot(df) + 
+  aes(region, fill = smoker) +
+  geom_bar(position = "stack") +
+  coord_flip() +
+  geom_text(stat = "count", aes(label = after_stat(count)), hjust = 1.5) +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Dark2", direction = 1)
+p3
+
+```
+
+# [Question 4:](https://youtu.be/dQw4w9WgXcQ){target="_blank"}
+
+> Using the Plotly package in R, create an interactive chart that shows the 
+scatter plot between bmi (in the horizontal axis), charges (in the vertical 
+axis), and color the dots based on region.
+
+```{r}
+library(plotly)
+p4 <- plot_ly(df, 
+              x = ~ bmi, 
+              y = ~ charges, 
+              color = ~ region,
+              type = "scatter",
+              mode = "markers")
+p4
+```
+
+## [Source](https://youtu.be/dQw4w9WgXcQ){target="_blank"}
