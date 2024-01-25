@@ -1,0 +1,106 @@
+---
+title: "ECON 3880: Assignment 1"
+author: "Samuel Morency - 101065894"
+
+date: '`r Sys.Date()`'
+output: 
+  html_notebook: 
+    df_print: paged
+    number_sections: false
+    theme: darkly
+    highlight: breezedark
+---
+
+# {.tabset}
+
+## Question 1
+
+> Create a histogram chart for the variable **charges** and color them **blue** 
+and fill in **red**.
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+
+df <- read.csv("insurance.csv", header = TRUE)
+
+factorCols <- c("sex","children","smoker","region")
+df[factorCols] <- lapply(df[factorCols], as.factor)
+
+ggplot(df, aes(charges)) + 
+  geom_histogram(color = "blue",
+                 fill = "red")
+```
+## Question 2
+
+>Repeat the above plot again but instead of a histogram, create density plots 
+and fill them according to the variable **Smoker** and also use the argument 
+**alpha = 0.5** to make the densities transparent.
+
+```{r}
+ggplot(df, aes(charges, fill = smoker)) +
+  geom_density(color = "blue",
+               alpha = 0.5)
+```
+>Is there any differences between smokers and non-smokers?
+
+The charges for smokers are significantly higher compared to non-smokers, at 
+least 2-4 times larger.
+
+## Question 3
+
+>Is there any regional differences in density curves of **charges** among 
+**smokers** and **nonsmokers**? To show these differences create a graph and 
+explain if you see any differences.
+
+```{r}
+ggplot(df, aes(charges, fill = smoker)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~region)
+```
+While the positions on the x-axis appear to be largely the same, the height of 
+the density peaks on the y-axis appear to be different. Most interestingly, out 
+of the two peaks for smokers, the left peak is higher in the north, while the 
+right-most peak is higher in the south.
+
+## Question 4
+
+>Install a package called **ggthemes** and load it into R. Next, create a 
+boxplot chart for **Charges** and fill them based on **Smoker** and show the 
+regional differences. Then, flip the axes and also change the theme to 
+economist, which is included in the **ggtheme** package.
+
+```{r}
+library(ggthemes)
+
+ggplot(df, aes(charges, smoker, fill = smoker)) +
+  geom_boxplot() +
+  facet_wrap(~region) +
+  coord_flip() +
+  theme_economist(dkpanel = TRUE) +
+  scale_fill_economist()
+```
+## Question 5
+
+>Create a **boxplot** chart to examine the link between **sex** and **charges** 
+and fill them according to **smoker**.
+
+```{r}
+ggplot(df, aes(sex, charges, fill = smoker)) +
+  geom_boxplot() +
+  theme_economist() +
+  scale_fill_economist()
+```
+>Next, use the same variables and create a **violin** plot instead.
+
+```{r}
+ggplot(df, aes(sex, charges, fill = smoker)) +
+  geom_violin() +
+  theme_economist() +
+  scale_fill_economist()
+```
+>What does this graph show? What can be seen using this graph that is not 
+observable in the boxplot?
+
+This graph conveys similar information as the box plot, except it allows you
+to see the density distribution. The box plot only shows you summary statistics.
